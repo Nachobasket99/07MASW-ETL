@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -29,15 +30,28 @@ public class Main {
                 line = bufferedReader.readLine();
                 lines.add(line);
             } while (Objects.nonNull(line));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        List<DataEntry> data = lines.stream().map(line -> {
-            return mapLineToObject(line);
-        }).collect(Collectors.toList());
+        List<DataEntry> data = lines.stream()
+                .filter(Objects::nonNull)
+                .map(Main::mapLineToObject).collect(Collectors.toList());
+
+        File output = new File("resources/output_v2.csv");
+        PrintWriter pw;
+        try {
+            pw = new PrintWriter(output);
+
+            data.stream()
+                    .filter(DataEntry::isValid)
+                    .map(Main::mapObjectToCSVLine)
+                    .forEach(pw::println);
+
+            pw.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     private static DataEntry mapLineToObject(String line) {
@@ -50,7 +64,7 @@ public class Main {
                 elements[5],
                 elements[6],
                 getPlatforms(elements)
-                );
+        );
     }
 
     private static List<DataEntry.Platform> getPlatforms(String[] elements) {
@@ -68,6 +82,21 @@ public class Main {
             platforms.add((DataEntry.Platform.DISNEY_PLUS));
         }
         return platforms;
+    }
+
+    private static String mapObjectToCSVLine(DataEntry object) {
+        String platforms = String.format("%s,%s,%s,%s",
+                object.getPlatforms().contains(DataEntry.Platform.NETFLIX) ? 1 : 0,
+                object.getPlatforms().contains(DataEntry.Platform.HULU) ? 1 : 0,
+                object.getPlatforms().contains(DataEntry.Platform.PRIME_VIDEO) ? 1 : 0,
+                object.getPlatforms().contains(DataEntry.Platform.DISNEY_PLUS) ? 1 : 0);
+
+        return String.format("%s,%s,%s,%s,%s,",
+                object.getTitle(),
+                object.getYear(),
+                object.getAge(),
+                object.getRatingIdmb(),
+                object.getRatingRT()) + platforms;
     }
 
 }
